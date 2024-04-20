@@ -9,6 +9,7 @@ public enum State {
     ChanReceive,
     ChanSend,
     SemAcquire,
+    SyncCondWait,
     Other;
 
     public static State getState(String state) {
@@ -30,6 +31,8 @@ public enum State {
                 return ChanSend;
             case "semacquire":
                 return SemAcquire;
+            case "sync.Cond.Wait":
+                return SyncCondWait;
             default:
                 System.out.printf("encountered unknown state '%s'\n", state);
                 return Other;

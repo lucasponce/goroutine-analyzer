@@ -3,7 +3,6 @@ package goroutine.analyzer;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 
-import javax.naming.Context;
 import javax.swing.*;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
@@ -31,15 +30,31 @@ public class MainWindow {
     private final SimpleAttributeSet headerStyle;
     private final SimpleAttributeSet bodyStyle;
 
-    private File lastDir = null;
+    // Fine granularity font personalization
+    private enum FontComponents {
+        CHOOSER, ITEM, LOAD, MAIN_MENU, MENU, QUIT, ROUTINES
+    } ;
+    private final Font mainFont = new Font("Courier", Font.PLAIN, 30);
+    private final Map<FontComponents, Font> fonts = new EnumMap<>(Map.of(
+          FontComponents.CHOOSER, mainFont,
+          FontComponents.ITEM, mainFont,
+          FontComponents.LOAD, mainFont,
+          FontComponents.MAIN_MENU, mainFont,
+          FontComponents.MENU, mainFont,
+          FontComponents.QUIT, mainFont,
+          FontComponents.ROUTINES, mainFont
+    ));
 
+    private File lastDir = null;
     {
         headerStyle = new SimpleAttributeSet();
         StyleConstants.setFontFamily(headerStyle, "Courier");
+        StyleConstants.setFontSize(headerStyle, 24);
         StyleConstants.setBold(headerStyle, true);
 
         bodyStyle = new SimpleAttributeSet();
         StyleConstants.setFontFamily(bodyStyle, "Courier");
+        StyleConstants.setFontSize(bodyStyle, 24);
         StyleConstants.setBold(bodyStyle, false);
         loadLastDir();
     }
@@ -156,6 +171,9 @@ public class MainWindow {
         }
         chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         chooser.setMultiSelectionEnabled(true);
+
+        getFirstJList(chooser).setFont(fonts.get(FontComponents.CHOOSER));
+
         var result = chooser.showOpenDialog(frame);
         System.out.println("result: " + result);
         if (result == JFileChooser.APPROVE_OPTION) {
@@ -178,10 +196,14 @@ public class MainWindow {
     private JMenuBar initMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         JMenu mainMenu = new JMenu("File");
+        mainMenu.setFont(fonts.get(FontComponents.MAIN_MENU));
 
         JMenuItem load = new JMenuItem("Load");
+        load.setFont(fonts.get(FontComponents.LOAD));
         load.addActionListener(actionEvent -> loadFile());
+
         JMenuItem quit = new JMenuItem("Quit");
+        quit.setFont(fonts.get(FontComponents.QUIT));
         quit.addActionListener(actionEvent -> System.exit(0));
 
         mainMenu.add(load);
@@ -253,8 +275,10 @@ public class MainWindow {
             }
 
             JPopupMenu menu = new JPopupMenu();
+            menu.setFont(fonts.get(FontComponents.MENU));
             for (var entry : actions.entrySet()) {
                 JMenuItem item = new JMenuItem(entry.getKey());
+                item.setFont(fonts.get(FontComponents.ITEM));
                 item.addActionListener(event -> SwingUtilities.invokeLater(() -> {
                     for (var contextAction : entry.getValue()) {
                         contextAction.action.execute(result -> {
@@ -282,7 +306,7 @@ public class MainWindow {
 
     private void init() {
         routines.setModel(treeModel);
-        routines.setFont(new Font("Courier", Font.PLAIN, 14));
+        routines.setFont(fonts.get(FontComponents.ROUTINES));
         routines.setExpandsSelectedPaths(true);
         routines.addTreeSelectionListener(new ElementSelectionListener());
         routines.setShowsRootHandles(true);
@@ -294,6 +318,20 @@ public class MainWindow {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.pack();
         frame.setVisible(true);
+    }
+
+    //Obtains the (first) JList which is found inside the component/container:
+    public static JList getFirstJList(final Component component) {
+        if (component instanceof JList)
+            return (JList) component;
+        if (component instanceof Container)
+            for (int i=0; i<((Container)component).getComponentCount(); ++i) {
+                final JList list = getFirstJList(((Container)component).getComponent(i));
+                if (list != null)
+                    return list;
+            }
+        return null;
+        //As you can see, it's a bit lazy hack, which has to run for every JFileChooser once at start-up.
     }
 
     public static void main(String[] args) {
